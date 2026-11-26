@@ -135,3 +135,53 @@ class Transaction:
             validate_amount(amount_text),
             validate_description(description),
         )
+
+
+# --- FinanceTracker -----------------------------------------------------------
+class FinanceTracker:
+    """Owns every transaction and all operations on them (see FRD section 6.4).
+
+    Transactions are stored in a dictionary keyed by id, so find, edit and delete
+    by id are O(1) on average. Views are built as a fresh list each time, so the
+    stored data has a single source of truth.
+    """
+
+    def __init__(self):
+        """Start with no transactions."""
+        self._transactions = {}
+
+    def _next_id(self):
+        """Return the next free id: highest existing id + 1, or 1 if empty."""
+        return max(self._transactions) + 1 if self._transactions else 1
+
+    def _require(self, tx_id):
+        """Return the transaction with tx_id, or raise KeyError with a message."""
+        try:
+            key = int(tx_id)
+        except (ValueError, TypeError):
+            raise KeyError(f"No transaction with ID {tx_id}.")
+        if key not in self._transactions:
+            raise KeyError(f"No transaction with ID {key}.")
+        return self._transactions[key]
+
+    def add(self, date_text, kind, category, amount_text, description=""):
+        """Validate the inputs, store a new transaction and return it (FR1)."""
+        transaction = Transaction(
+            self._next_id(),
+            validate_date(date_text),
+            validate_kind(kind),
+            validate_category(category),
+            validate_amount(amount_text),
+            validate_description(description),
+        )
+        self._transactions[transaction.id] = transaction
+        return transaction
+
+    def get_all(self):
+        """Return all transactions as a list, newest date first (FR2)."""
+        return sorted(self._transactions.values(),
+                      key=lambda t: (t.date, t.id), reverse=True)
+
+    def count(self):
+        """Return how many transactions are stored."""
+        return len(self._transactions)
