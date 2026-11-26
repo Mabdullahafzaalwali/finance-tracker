@@ -1,0 +1,25 @@
+id,date,kind,category,amount,description
+1,2026-10-01,income,Salary,1800.00,October pay
+2,2026-10-02,expense,Rent,650.00,Monthly rent
+3,2026-10-03,expense,Food,42.30,Weekly shop
+4,2026-10-05,expense,Transport,12.50,Bus pass
+5,2026-10-08,expense,Bills,60.00,Electricity
+6,2026-10-10,expense,Entertainment,15.99,Cinema
+7,2026-10-12,expense,Food,8.75,Lunch
+8,2026-10-15,expense,Shopping,34.00,Clothes
+9,2026-10-18,expense,Food,51.20,Groceries
+10,2026-10-20,expense,Transport,25.00,Train ticket
+11,2026-10-25,income,Gift,50.00,Birthday gift
+12,2026-10-28,expense,Bills,28.50,Phone
+13,2026-11-01,income,Salary,1800.00,November pay
+14,2026-11-02,expense,Rent,650.00,Monthly rent
+15,2026-11-03,expense,Food,39.90,Weekly shop
+16,2026-11-05,expense,Transport,12.50,Bus pass
+17,2026-11-07,expense,Entertainment,22.00,Concert ticket
+18,2026-11-09,expense,Food,11.40,Lunch
+19,2026-11-11,expense,Bills,60.00,Electricity
+20,2026-11-14,expense,Shopping,75.49,Headphones
+21,2026-11-16,expense,Food,47.85,Groceries
+22,2026-11-19,expense,Transport,9.20,Taxi
+23,2026-11-22,expense,Food,18.60,Dinner out
+24,2026-11-24,expense,Other,5.00,Snacks
