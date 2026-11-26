@@ -179,6 +179,13 @@ class FinanceTracker:
         self._transactions[transaction.id] = transaction
         return transaction
 
+    def get(self, tx_id):
+        """Return the transaction with tx_id, or raise KeyError with a message.
+
+        Used by the front ends to show a record before editing or deleting it.
+        """
+        return self._require(tx_id)
+
     def get_all(self):
         """Return all transactions as a list, newest date first (FR2)."""
         return sorted(self._transactions.values(),

@@ -89,6 +89,14 @@ class TestView(unittest.TestCase):
         """T8 (boundary): an empty tracker returns an empty list."""
         self.assertEqual(core.FinanceTracker().get_all(), [])
 
+    def test_get_by_id(self):
+        """get() returns the matching record and raises KeyError for an unknown id."""
+        tracker = core.FinanceTracker()
+        added = tracker.add(PAST_DATE, "expense", "Food", "5.00", "x")
+        self.assertIs(tracker.get(added.id), added)
+        with self.assertRaises(KeyError):
+            tracker.get(999)
+
 
 class TestSearch(unittest.TestCase):
     """FR3 - search by category, kind and/or month."""
