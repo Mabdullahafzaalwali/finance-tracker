@@ -1,0 +1,33 @@
+# ============================================================
+#  Personal Finance Tracker — .gitignore
+#  Only the application codebase is published to GitHub.
+#  All coursework scaffolding, planning material and the FRD
+#  stay on the local machine and are never pushed.
+# ============================================================
+
+# --- Local-only coursework / AI working material (never commit) ---
+CLAUDE.md
+START_HERE.md
+.claude/
+docs/
+starter-kit/
+
+# --- OS / editor noise ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# --- Python artefacts ---
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# --- Misc ---
+*.log
+.env
