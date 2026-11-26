@@ -1,0 +1,3 @@
+# Normalise line endings so the project is identical on Windows, macOS and Linux.
+# Text files are stored with LF in the repository and checked out with LF.
+* text=auto eol=lf
