@@ -126,7 +126,8 @@ class FinanceApp:
         ttk.Button(frame, text="Edit selected", command=self._edit_selected).grid(row=0, column=0, padx=4)
         ttk.Button(frame, text="Delete selected", command=self._delete_selected).grid(row=0, column=1, padx=4)
         ttk.Button(frame, text="Monthly summary", command=self._show_summary).grid(row=0, column=2, padx=4)
-        ttk.Button(frame, text="Save", command=self._save).grid(row=0, column=3, padx=4)
+        ttk.Button(frame, text="Set budget", command=self._set_budget).grid(row=0, column=3, padx=4)
+        ttk.Button(frame, text="Save", command=self._save).grid(row=0, column=4, padx=4)
 
     def _build_status(self):
         """Build the status line at the bottom of the window."""
@@ -171,6 +172,7 @@ class FinanceApp:
         """Load the data file and report the result on the status line (FR9)."""
         had_file = os.path.exists(core.DATA_FILE)
         skipped = self.tracker.load()
+        self.tracker.load_budgets()
         self._show(self.tracker.get_all())
         if not had_file:
             self._status("No saved data found, starting a new file.")
@@ -304,6 +306,11 @@ class FinanceApp:
                     lines.append(f"  {category:13} £{total:.2f}")
             else:
                 lines.append("No expenses this month.")
+            warnings = self.tracker.over_budget(month_var.get().strip())
+            if warnings:
+                lines.append("")
+                for category, over in warnings:
+                    lines.append(f"{category} over budget by £{over:.2f}")
             output.configure(state="normal")
             output.delete("1.0", "end")
             output.insert("1.0", "\n".join(lines))
@@ -312,10 +319,36 @@ class FinanceApp:
         ttk.Button(window, text="Show", command=render).grid(row=1, column=0, columnspan=2, pady=2)
         render()
 
+    def _set_budget(self):
+        """Open a small window to set a monthly budget for a category (FR10)."""
+        window = tk.Toplevel(self.root)
+        window.title("Set budget")
+        category_var = tk.StringVar(value=core.CATEGORIES[0])
+        limit_var = tk.StringVar()
+        ttk.Label(window, text="Category").grid(row=0, column=0, padx=6, pady=6, sticky="w")
+        ttk.Combobox(window, textvariable=category_var, values=core.CATEGORIES,
+                     state="readonly", width=13).grid(row=0, column=1, padx=6, pady=6)
+        ttk.Label(window, text="Monthly limit (£)").grid(row=1, column=0, padx=6, pady=6, sticky="w")
+        ttk.Entry(window, textvariable=limit_var, width=13).grid(row=1, column=1, padx=6, pady=6)
+
+        def apply_budget():
+            """Validate and store the budget, then close the window."""
+            try:
+                self.tracker.set_budget(category_var.get(), limit_var.get())
+            except ValueError as error:
+                self._error(error)
+                return
+            self._status(f"Budget set: {category_var.get()} £{float(limit_var.get()):.2f} per month.")
+            window.destroy()
+
+        ttk.Button(window, text="Set", command=apply_budget).grid(
+            row=2, column=0, columnspan=2, pady=6)
+
     def _save(self):
-        """Save all transactions to the data file (FR8)."""
+        """Save all transactions and budgets to their data files (FR8, FR10)."""
         try:
             written = self.tracker.save()
+            self.tracker.save_budgets()
         except OSError as error:
             messagebox.showerror("Error", f"Could not save: {error}")
             return
