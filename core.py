@@ -71,6 +71,8 @@ def validate_amount(amount_text):
         value = float(text)
     except ValueError:
         raise ValueError("Amount must be a number, for example 12.50.")
+    if value != value:  # reject NaN, which is the only float that is unequal to itself
+        raise ValueError("Amount must be a number, for example 12.50.")
     if value <= 0:
         raise ValueError("Amount must be greater than 0.")
     if value > MAX_AMOUNT:

@@ -52,7 +52,7 @@ class TestAdd(unittest.TestCase):
     def test_T04_add_invalid_amounts(self):
         """T4 (invalid): bad amounts are rejected and nothing is added."""
         tracker = core.FinanceTracker()
-        for bad in ("abc", "0", "-5", "10.999"):
+        for bad in ("abc", "0", "-5", "10.999", "nan", "inf"):
             with self.assertRaises(ValueError):
                 tracker.add(PAST_DATE, "expense", "Food", bad, "x")
         self.assertEqual(tracker.count(), 0)
