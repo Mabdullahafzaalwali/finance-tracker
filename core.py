@@ -250,3 +250,30 @@ class FinanceTracker:
         transaction = self._require(tx_id)
         del self._transactions[transaction.id]
         return transaction
+
+    def monthly_summary(self, month):
+        """Return income, expenses, balance and per-category expense totals (FR7).
+
+        One pass over the month's records fills a running total for income,
+        expenses and a dictionary of category -> expense total. Raises ValueError
+        if month is not YYYY-MM.
+        """
+        validate_month(month)
+        income = 0.0
+        expenses = 0.0
+        by_category = {}
+        for transaction in self._transactions.values():
+            if transaction.date.strftime(MONTH_FORMAT) != month:
+                continue
+            if transaction.kind == "income":
+                income += transaction.amount
+            else:
+                expenses += transaction.amount
+                by_category[transaction.category] = (
+                    by_category.get(transaction.category, 0.0) + transaction.amount)
+        return {
+            "income": round(income, 2),
+            "expenses": round(expenses, 2),
+            "balance": round(income - expenses, 2),
+            "by_category": {name: round(total, 2) for name, total in by_category.items()},
+        }
