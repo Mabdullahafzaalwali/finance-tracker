@@ -9,6 +9,7 @@ Run with:  python -m unittest -v
 """
 
 import os
+import shutil
 import tempfile
 import time
 import unittest
@@ -218,6 +219,91 @@ class TestSummary(unittest.TestCase):
         summary = tracker.monthly_summary("2026-10")
         self.assertEqual(summary["expenses"], 10.00)
         self.assertEqual(summary["by_category"], {"Food": 10.00})
+
+
+class TestPersistence(unittest.TestCase):
+    """FR8, FR9, NFR2 - save and load a CSV file (using a temporary file)."""
+
+    def _temp_path(self):
+        """Return a path inside a fresh temp folder that is cleaned up after."""
+        folder = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, folder, ignore_errors=True)
+        return os.path.join(folder, "data.csv")
+
+    def test_T22_save_load_round_trip(self):
+        """T22 (normal): 20 saved records load back with every field equal (NFR2)."""
+        path = self._temp_path()
+        original = core.FinanceTracker()
+        for day in range(1, 21):
+            kind, category = ("income", "Salary") if day % 5 == 0 else ("expense", "Food")
+            original.add(f"2026-11-{day:02d}", kind, category, f"{day}.50", f"item {day}")
+        self.assertEqual(original.save(path), 20)
+
+        loaded = core.FinanceTracker()
+        self.assertEqual(loaded.load(path), 0)
+        self.assertEqual(loaded.count(), 20)
+        for before, after in zip(original.get_all(), loaded.get_all()):
+            self.assertEqual(
+                (before.id, before.date, before.kind, before.category,
+                 before.amount, before.description),
+                (after.id, after.date, after.kind, after.category,
+                 after.amount, after.description))
+
+    def test_T23_load_missing_file(self):
+        """T23 (invalid): loading a missing file leaves the tracker empty."""
+        tracker = core.FinanceTracker()
+        self.assertEqual(tracker.load(self._temp_path()), 0)
+        self.assertEqual(tracker.count(), 0)
+
+    def test_T24_load_skips_bad_rows(self):
+        """T24 (invalid): 10 good and 2 corrupt rows load 10 and report 2 skipped."""
+        path = self._temp_path()
+        with open(path, "w", newline="", encoding="utf-8") as handle:
+            handle.write(",".join(core.CSV_HEADER) + "\n")
+            for i in range(1, 11):
+                handle.write(f"{i},2026-11-10,expense,Food,{i}.00,row {i}\n")
+            handle.write("11,2026-13-01,expense,Food,5.00,bad date\n")  # impossible date
+            handle.write("12,2026-11-10,expense,Food,abc,bad amount\n")  # bad amount
+        tracker = core.FinanceTracker()
+        self.assertEqual(tracker.load(path), 2)
+        self.assertEqual(tracker.count(), 10)
+
+    def test_T25_next_id_after_load(self):
+        """T25 (normal): after loading records whose highest id is 5, the next id is 6."""
+        path = self._temp_path()
+        tracker = core.FinanceTracker()
+        for _ in range(5):                     # ids 1..5
+            tracker.add(PAST_DATE, "expense", "Food", "1.00", "x")
+        for gone in (2, 3, 4):                 # delete three, highest id stays 5
+            tracker.delete(gone)
+        tracker.save(path)
+
+        reloaded = core.FinanceTracker()
+        reloaded.load(path)
+        self.assertEqual(reloaded.add(PAST_DATE, "expense", "Food", "1.00", "new").id, 6)
+
+
+class TestPerformance(unittest.TestCase):
+    """NFR3 - search, sort and summary stay fast on realistic data."""
+
+    def test_T27_performance_1000_records(self):
+        """T27 (normal): each operation on 1,000 records finishes under 1 second."""
+        tracker = core.FinanceTracker()
+        base = date(2024, 1, 1)
+        for i in range(1000):
+            day = (base + timedelta(days=i % 500)).strftime(core.DATE_FORMAT)
+            kind = "income" if i % 2 else "expense"
+            category = core.CATEGORIES[i % len(core.CATEGORIES)]
+            tracker.add(day, kind, category, f"{1 + (i % 100) * 0.5:.2f}", f"item {i}")
+
+        for operation in (
+            lambda: tracker.search(category="Food"),
+            lambda: tracker.sort(tracker.get_all(), "amount", descending=True),
+            lambda: tracker.monthly_summary("2024-06"),
+        ):
+            start = time.perf_counter()
+            operation()
+            self.assertLess(time.perf_counter() - start, 1.0)
 
 
 if __name__ == "__main__":
