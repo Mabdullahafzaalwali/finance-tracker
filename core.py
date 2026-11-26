@@ -220,3 +220,33 @@ class FinanceTracker:
         if by not in key_functions:
             raise ValueError("Sort field must be date, amount or category.")
         return sorted(items, key=key_functions[by], reverse=descending)
+
+    def edit(self, tx_id, **changes):
+        """Change one or more fields of a transaction chosen by id (FR5).
+
+        Accepts date, kind, category, amount and/or description as raw text. All
+        changes are validated before any is applied, so a bad value leaves the
+        record unchanged. Raises KeyError for an unknown id, ValueError for a bad
+        value or an unknown field.
+        """
+        transaction = self._require(tx_id)
+        validators = {
+            "date": validate_date,
+            "kind": validate_kind,
+            "category": validate_category,
+            "amount": validate_amount,
+            "description": validate_description,
+        }
+        unknown = set(changes) - set(validators)
+        if unknown:
+            raise ValueError("Cannot edit field(s): " + ", ".join(sorted(unknown)) + ".")
+        cleaned = {field: validators[field](value) for field, value in changes.items()}
+        for field, value in cleaned.items():
+            setattr(transaction, field, value)
+        return transaction
+
+    def delete(self, tx_id):
+        """Remove and return the transaction with tx_id (FR6)."""
+        transaction = self._require(tx_id)
+        del self._transactions[transaction.id]
+        return transaction
