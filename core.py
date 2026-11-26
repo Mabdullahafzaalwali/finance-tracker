@@ -97,3 +97,41 @@ def validate_month(month_text):
             or not 1 <= int(parts[1]) <= 12):
         raise ValueError("Month must be in the format YYYY-MM.")
     return text
+
+
+# --- Transaction --------------------------------------------------------------
+class Transaction:
+    """One income or expense record with six fields (see FRD section 3)."""
+
+    def __init__(self, id, date, kind, category, amount, description):
+        """Store already-validated field values for one transaction."""
+        self.id = id
+        self.date = date
+        self.kind = kind
+        self.category = category
+        self.amount = amount
+        self.description = description
+
+    def to_row(self):
+        """Return this transaction as a list of strings for one CSV row."""
+        return [str(self.id), self.date.strftime(DATE_FORMAT), self.kind,
+                self.category, f"{self.amount:.2f}", self.description]
+
+    @classmethod
+    def from_row(cls, row):
+        """Build a Transaction from a CSV row, raising ValueError if it is bad."""
+        if len(row) != 6:
+            raise ValueError("A row must have exactly 6 columns.")
+        id_text, date_text, kind_text, category_text, amount_text, description = row
+        try:
+            id = int(id_text)
+        except ValueError:
+            raise ValueError("ID must be a whole number.")
+        return cls(
+            id,
+            validate_date(date_text),
+            validate_kind(kind_text),
+            validate_category(category_text),
+            validate_amount(amount_text),
+            validate_description(description),
+        )
