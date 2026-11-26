@@ -63,6 +63,7 @@ def _print_menu():
     print("5. Edit a transaction")
     print("6. Delete a transaction")
     print("7. Monthly summary")
+    print("8. Set a category budget")
     print("9. Save")
     print("0. Save and exit")
 
@@ -72,6 +73,7 @@ def _load_at_startup(tracker):
     """Load the data file at start-up and report what happened (FR9)."""
     had_file = os.path.exists(core.DATA_FILE)
     skipped = tracker.load()
+    tracker.load_budgets()
     if not had_file:
         print("No saved data found, starting a new file.")
         return
@@ -190,12 +192,24 @@ def _summary(tracker):
             print(f"    {category:13} £{total:.2f}")
     else:
         print("  No expenses this month.")
+    for category, over in tracker.over_budget(month):
+        print(f"  {category} over budget by £{over:.2f}")
+
+
+def _set_budget(tracker):
+    """Set a monthly spending limit for a category (FR10)."""
+    category = _prompt_valid("Budget category (" + ", ".join(core.CATEGORIES) + "): ",
+                             core.validate_category)
+    limit = _prompt_valid("Monthly limit (£): ", core.validate_amount)
+    tracker.set_budget(category, limit)
+    print(f"Budget set: {category} £{float(limit):.2f} per month.")
 
 
 def _save(tracker):
     """Save all transactions to the data file (FR8)."""
     try:
         written = tracker.save()
+        tracker.save_budgets()
         print(f"Saved {written} records to {core.DATA_FILE}.")
     except OSError as error:
         print(f"Could not save: {error}")
@@ -213,7 +227,7 @@ def main():
     _load_at_startup(tracker)
     actions = {
         "1": _add, "2": _view, "3": _search, "4": _sort,
-        "5": _edit, "6": _delete, "7": _summary, "9": _save,
+        "5": _edit, "6": _delete, "7": _summary, "8": _set_budget, "9": _save,
     }
     while True:
         _print_menu()
