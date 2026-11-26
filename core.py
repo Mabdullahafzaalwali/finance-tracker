@@ -185,3 +185,38 @@ class FinanceTracker:
     def count(self):
         """Return how many transactions are stored."""
         return len(self._transactions)
+
+    def search(self, category=None, kind=None, month=None):
+        """Return transactions matching every filter given, newest first (FR3).
+
+        A filter left as None (or blank) is ignored. A linear scan checks each
+        record against category, kind and month. Raises ValueError for a bad
+        category, kind or month.
+        """
+        if category:
+            category = validate_category(category)
+        if kind:
+            kind = validate_kind(kind)
+        if month:
+            validate_month(month)
+        results = []
+        for transaction in self.get_all():
+            if category and transaction.category != category:
+                continue
+            if kind and transaction.kind != kind:
+                continue
+            if month and transaction.date.strftime(MONTH_FORMAT) != month:
+                continue
+            results.append(transaction)
+        return results
+
+    def sort(self, items, by, descending=False):
+        """Return a new list of items sorted by date, amount or category (FR4)."""
+        key_functions = {
+            "date": lambda t: (t.date, t.id),
+            "amount": lambda t: t.amount,
+            "category": lambda t: t.category.lower(),
+        }
+        if by not in key_functions:
+            raise ValueError("Sort field must be date, amount or category.")
+        return sorted(items, key=key_functions[by], reverse=descending)
