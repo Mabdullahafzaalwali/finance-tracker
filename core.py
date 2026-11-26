@@ -277,3 +277,43 @@ class FinanceTracker:
             "balance": round(income - expenses, 2),
             "by_category": {name: round(total, 2) for name, total in by_category.items()},
         }
+
+    def save(self, path=DATA_FILE):
+        """Write every transaction to a CSV file and return the count (FR8).
+
+        Lets any OSError (for example a read-only or locked file) reach the
+        caller so the front end can report it and keep the data in memory.
+        """
+        with open(path, "w", newline="", encoding="utf-8") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(CSV_HEADER)
+            for transaction in sorted(self._transactions.values(), key=lambda t: t.id):
+                writer.writerow(transaction.to_row())
+        return self.count()
+
+    def load(self, path=DATA_FILE):
+        """Load transactions from a CSV file and return how many rows were bad (FR9).
+
+        Replaces the current data. A missing file leaves the tracker empty and is
+        not an error. Rows that fail validation are skipped and counted so the
+        front end can report "skipped N bad rows".
+        """
+        self._transactions.clear()
+        try:
+            handle = open(path, "r", newline="", encoding="utf-8")
+        except FileNotFoundError:
+            return 0
+        skipped = 0
+        with handle:
+            rows = list(csv.reader(handle))
+        start = 1 if rows and tuple(rows[0]) == CSV_HEADER else 0
+        for row in rows[start:]:
+            if not row:
+                continue
+            try:
+                transaction = Transaction.from_row(row)
+            except ValueError:
+                skipped += 1
+                continue
+            self._transactions[transaction.id] = transaction
+        return skipped
