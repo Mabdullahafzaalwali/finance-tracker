@@ -23,6 +23,8 @@ DATE_FORMAT = "%Y-%m-%d"
 MONTH_FORMAT = "%Y-%m"
 DATA_FILE = "transactions.csv"
 CSV_HEADER = ("id", "date", "kind", "category", "amount", "description")
+BUDGET_FILE = "budgets.csv"
+BUDGET_HEADER = ("category", "limit")
 
 
 # --- Field validators ---------------------------------------------------------
@@ -149,8 +151,9 @@ class FinanceTracker:
     """
 
     def __init__(self):
-        """Start with no transactions."""
+        """Start with no transactions and no category budgets."""
         self._transactions = {}
+        self._budgets = {}
 
     def _next_id(self):
         """Return the next free id: highest existing id + 1, or 1 if empty."""
@@ -325,4 +328,59 @@ class FinanceTracker:
                 skipped += 1
                 continue
             self._transactions[transaction.id] = transaction
+        return skipped
+
+    # --- Budgets (FR10, a Could feature) --------------------------------------
+    def set_budget(self, category, limit_text):
+        """Set a monthly spending limit for a category (FR10)."""
+        category = validate_category(category)
+        self._budgets[category] = validate_amount(limit_text)
+
+    def get_budgets(self):
+        """Return a copy of the category -> monthly limit map."""
+        return dict(self._budgets)
+
+    def over_budget(self, month):
+        """Return [(category, amount_over)] for categories over their limit (FR10).
+
+        Spending of exactly the limit is not over budget. Raises ValueError if
+        month is not YYYY-MM.
+        """
+        spent = self.monthly_summary(month)["by_category"]
+        results = []
+        for category, limit in self._budgets.items():
+            over = round(spent.get(category, 0.0) - limit, 2)
+            if over > 0:
+                results.append((category, over))
+        return results
+
+    def save_budgets(self, path=BUDGET_FILE):
+        """Write the category budgets to a CSV file and return the count (FR10)."""
+        with open(path, "w", newline="", encoding="utf-8") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(BUDGET_HEADER)
+            for category, limit in sorted(self._budgets.items()):
+                writer.writerow([category, f"{limit:.2f}"])
+        return len(self._budgets)
+
+    def load_budgets(self, path=BUDGET_FILE):
+        """Load category budgets from a CSV file, skipping and counting bad rows (FR10)."""
+        self._budgets.clear()
+        try:
+            handle = open(path, "r", newline="", encoding="utf-8")
+        except FileNotFoundError:
+            return 0
+        skipped = 0
+        with handle:
+            rows = list(csv.reader(handle))
+        start = 1 if rows and tuple(rows[0]) == BUDGET_HEADER else 0
+        for row in rows[start:]:
+            if not row:
+                continue
+            try:
+                if len(row) != 2:
+                    raise ValueError("A budget row must have 2 columns.")
+                self._budgets[validate_category(row[0])] = validate_amount(row[1])
+            except ValueError:
+                skipped += 1
         return skipped

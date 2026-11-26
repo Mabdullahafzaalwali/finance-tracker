@@ -314,5 +314,40 @@ class TestPerformance(unittest.TestCase):
             self.assertLess(time.perf_counter() - start, 1.0)
 
 
+class TestBudget(unittest.TestCase):
+    """FR10 - per-category monthly budgets and the over-budget warning."""
+
+    def test_T26_over_budget_boundary(self):
+        """T26 (boundary): spending the exact limit is fine; a penny over warns."""
+        tracker = core.FinanceTracker()
+        tracker.set_budget("Food", "100.00")
+        tracker.add("2026-11-05", "expense", "Food", "100.00", "at limit")
+        self.assertEqual(tracker.over_budget("2026-11"), [])
+        tracker.add("2026-11-06", "expense", "Food", "20.00", "over")
+        self.assertEqual(tracker.over_budget("2026-11"), [("Food", 20.00)])
+
+    def test_budget_save_load_round_trip(self):
+        """Budgets saved to a file load back with the same limits."""
+        folder = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, folder, ignore_errors=True)
+        path = os.path.join(folder, "budgets.csv")
+        original = core.FinanceTracker()
+        original.set_budget("Food", "100.00")
+        original.set_budget("Transport", "40.00")
+        self.assertEqual(original.save_budgets(path), 2)
+
+        loaded = core.FinanceTracker()
+        self.assertEqual(loaded.load_budgets(path), 0)
+        self.assertEqual(loaded.get_budgets(), {"Food": 100.00, "Transport": 40.00})
+
+    def test_set_budget_invalid(self):
+        """An unknown category or a bad limit raises ValueError."""
+        tracker = core.FinanceTracker()
+        with self.assertRaises(ValueError):
+            tracker.set_budget("Pets", "10.00")
+        with self.assertRaises(ValueError):
+            tracker.set_budget("Food", "-5")
+
+
 if __name__ == "__main__":
     unittest.main()
