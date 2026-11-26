@@ -144,5 +144,81 @@ class TestSort(unittest.TestCase):
             core.FinanceTracker().sort([], "colour")
 
 
+class TestEdit(unittest.TestCase):
+    """FR5 - edit a transaction chosen by id."""
+
+    def test_T15_edit_normal(self):
+        """T15 (normal): editing one record's amount leaves the others unchanged."""
+        tracker = core.FinanceTracker()
+        tracker.add(PAST_DATE, "expense", "Food", "10.00", "a")       # id 1
+        tracker.add(PAST_DATE, "expense", "Transport", "3.00", "b")   # id 2
+        tracker.edit(1, amount="20.00")
+        self.assertEqual(tracker._require(1).amount, 20.00)
+        self.assertEqual(tracker._require(2).amount, 3.00)
+
+    def test_T16_edit_invalid(self):
+        """T16 (invalid): unknown id raises KeyError; a bad value keeps the old one."""
+        tracker = core.FinanceTracker()
+        tracker.add(PAST_DATE, "expense", "Food", "10.00", "a")       # id 1
+        with self.assertRaises(KeyError):
+            tracker.edit(999, amount="5.00")
+        with self.assertRaises(ValueError):
+            tracker.edit(1, amount="-1")
+        self.assertEqual(tracker._require(1).amount, 10.00)
+
+
+class TestDelete(unittest.TestCase):
+    """FR6 - delete a transaction chosen by id."""
+
+    def test_T17_delete_normal(self):
+        """T17 (normal): deleting a record drops the count and removes the id."""
+        tracker = core.FinanceTracker()
+        tracker.add(PAST_DATE, "expense", "Food", "10.00", "a")       # id 1
+        tracker.add(PAST_DATE, "expense", "Transport", "3.00", "b")   # id 2
+        tracker.delete(2)
+        self.assertEqual(tracker.count(), 1)
+        with self.assertRaises(KeyError):
+            tracker._require(2)
+
+    def test_T18_delete_invalid(self):
+        """T18 (invalid): deleting an unknown id raises KeyError and keeps the count."""
+        tracker = core.FinanceTracker()
+        tracker.add(PAST_DATE, "expense", "Food", "10.00", "a")
+        with self.assertRaises(KeyError):
+            tracker.delete(999)
+        self.assertEqual(tracker.count(), 1)
+
+
+class TestSummary(unittest.TestCase):
+    """FR7 - monthly summary of income, expenses, balance and categories."""
+
+    def test_T19_summary_normal(self):
+        """T19 (normal): totals and per-category expense totals are correct."""
+        tracker = core.FinanceTracker()
+        tracker.add("2026-11-01", "income", "Salary", "1000.00", "pay")
+        tracker.add("2026-11-05", "expense", "Food", "250.00", "food")
+        tracker.add("2026-11-06", "expense", "Transport", "50.00", "bus")
+        summary = tracker.monthly_summary("2026-11")
+        self.assertEqual(summary["income"], 1000.00)
+        self.assertEqual(summary["expenses"], 300.00)
+        self.assertEqual(summary["balance"], 700.00)
+        self.assertEqual(summary["by_category"], {"Food": 250.00, "Transport": 50.00})
+
+    def test_T20_summary_empty_month(self):
+        """T20 (boundary): a month with no records totals 0.00 across the board."""
+        summary = core.FinanceTracker().monthly_summary("2020-01")
+        self.assertEqual(summary,
+                         {"income": 0.0, "expenses": 0.0, "balance": 0.0, "by_category": {}})
+
+    def test_T21_summary_month_boundary(self):
+        """T21 (boundary): a record one day into the next month is excluded."""
+        tracker = core.FinanceTracker()
+        tracker.add("2026-10-31", "expense", "Food", "10.00", "in month")
+        tracker.add("2026-11-01", "expense", "Food", "99.00", "next month")
+        summary = tracker.monthly_summary("2026-10")
+        self.assertEqual(summary["expenses"], 10.00)
+        self.assertEqual(summary["by_category"], {"Food": 10.00})
+
+
 if __name__ == "__main__":
     unittest.main()
