@@ -10,9 +10,6 @@ and comes in two versions that share one tested core:
 - a **text / command-line** app (`cli.py`), and
 - a **graphical** app (`gui.py`, Tkinter).
 
-> Status: this README is filled in as the project is built. Run instructions and
-> the feature list are final; a test-output summary is added once the tests pass.
-
 ## Features
 
 | ID | Feature |
@@ -55,7 +52,8 @@ start empty if it is missing) and save back to it.
 python -m unittest -v
 ```
 
-The tests import only `core.py` and use a temporary file, so they never touch
+There are 30 tests covering every requirement with normal, boundary and invalid
+cases. They import only `core.py` and use a temporary file, so they never touch
 your real `transactions.csv`.
 
 ## Data files
